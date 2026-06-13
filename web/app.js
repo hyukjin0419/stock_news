@@ -14,16 +14,25 @@ function toast(msg, isError = false) {
 }
 
 // ---------- 인증 ----------
+function _creds() {
+  return { email: $("email").value.trim(), password: $("password").value };
+}
+
 $("loginBtn").onclick = async () => {
-  const email = $("email").value.trim();
-  if (!email) return;
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.href },
-  });
-  $("authMsg").textContent = error
-    ? "오류: " + error.message
-    : "메일함을 확인해 로그인 링크를 눌러주세요.";
+  const { email, password } = _creds();
+  if (!email || !password) return ($("authMsg").textContent = "이메일과 비밀번호를 입력하세요.");
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  $("authMsg").textContent = error ? "로그인 실패: " + error.message : "";
+};
+
+$("signupBtn").onclick = async () => {
+  const { email, password } = _creds();
+  if (!email || !password) return ($("authMsg").textContent = "이메일과 비밀번호를 입력하세요.");
+  const { data, error } = await sb.auth.signUp({ email, password });
+  if (error) return ($("authMsg").textContent = "가입 실패: " + error.message);
+  $("authMsg").textContent = data.session
+    ? ""
+    : "가입 완료! 이메일 인증 후 로그인하세요.";
 };
 
 $("logoutBtn").onclick = async () => {

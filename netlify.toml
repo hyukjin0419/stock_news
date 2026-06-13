@@ -1,0 +1,4 @@
+[build]
+  # 정적 사이트 — 빌드 없음, web/ 폴더만 배포
+  publish = "web"
+  command = ""

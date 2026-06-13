@@ -20,19 +20,45 @@ function _creds() {
 
 $("loginBtn").onclick = async () => {
   const { email, password } = _creds();
-  if (!email || !password) return ($("authMsg").textContent = "이메일과 비밀번호를 입력하세요.");
+  if (!email || !password) {
+    $("authMsg").textContent = "이메일과 비밀번호를 입력하세요.";
+    toast("이메일과 비밀번호를 입력하세요", true);
+    return;
+  }
+  $("authMsg").textContent = "로그인 중...";
+  toast("로그인 중...");
   const { error } = await sb.auth.signInWithPassword({ email, password });
-  $("authMsg").textContent = error ? "로그인 실패: " + error.message : "";
+  if (error) {
+    $("authMsg").textContent = "로그인 실패: " + error.message;
+    toast("로그인 실패", true);
+  } else {
+    $("authMsg").textContent = "";
+    toast("로그인 성공");
+  }
 };
 
 $("signupBtn").onclick = async () => {
   const { email, password } = _creds();
-  if (!email || !password) return ($("authMsg").textContent = "이메일과 비밀번호를 입력하세요.");
+  if (!email || !password) {
+    $("authMsg").textContent = "이메일과 비밀번호를 입력하세요.";
+    toast("이메일과 비밀번호를 입력하세요", true);
+    return;
+  }
+  $("authMsg").textContent = "가입 중...";
+  toast("가입 중...");
   const { data, error } = await sb.auth.signUp({ email, password });
-  if (error) return ($("authMsg").textContent = "가입 실패: " + error.message);
-  $("authMsg").textContent = data.session
-    ? ""
-    : "가입 완료! 이메일 인증 후 로그인하세요.";
+  if (error) {
+    $("authMsg").textContent = "가입 실패: " + error.message;
+    toast("가입 실패", true);
+    return;
+  }
+  if (data.session) {
+    $("authMsg").textContent = "";
+    toast("가입 완료");
+  } else {
+    $("authMsg").textContent = "가입 완료! 이메일 인증 후 로그인하세요.";
+    toast("가입 완료 — 이메일 인증 필요");
+  }
 };
 
 $("logoutBtn").onclick = async () => {

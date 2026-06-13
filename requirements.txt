@@ -1,0 +1,8 @@
+supabase
+finance-datareader
+yfinance
+requests
+trafilatura
+litellm
+anthropic
+python-dotenv

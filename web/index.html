@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>주식 뉴스 관심종목</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, system-ui, sans-serif; max-width: 640px;
+           margin: 0 auto; padding: 24px; color: #1a1a1a; }
+    h1 { font-size: 22px; }
+    input { padding: 10px 12px; font-size: 15px; border: 1px solid #ccc;
+            border-radius: 8px; width: 100%; }
+    button { padding: 8px 14px; font-size: 14px; border: none; border-radius: 8px;
+             background: #2563eb; color: #fff; cursor: pointer; }
+    button.ghost { background: #eee; color: #333; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .hidden { display: none; }
+    .item { display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid #eee; }
+    .tag { font-size: 12px; color: #fff; background: #888; border-radius: 4px;
+           padding: 1px 6px; margin-left: 6px; }
+    .tag.KR { background: #d33; } .tag.US { background: #2563eb; }
+    .muted { color: #888; font-size: 13px; }
+    #results .item { cursor: default; }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+             background: #1a1a1a; color: #fff; padding: 10px 18px; border-radius: 8px;
+             font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+    #toast.show { opacity: 1; }
+    #toast.error { background: #d33; }
+  </style>
+</head>
+<body>
+  <h1>📈 주식 뉴스 관심종목</h1>
+
+  <!-- 로그인 -->
+  <section id="auth">
+    <p class="muted">이메일을 입력하면 로그인 링크를 보내드려요 (비밀번호 없음).</p>
+    <div class="row">
+      <input id="email" type="email" placeholder="you@example.com" />
+      <button id="loginBtn">로그인 링크 받기</button>
+    </div>
+    <p id="authMsg" class="muted"></p>
+  </section>
+
+  <!-- 관심종목 관리 -->
+  <section id="app" class="hidden">
+    <div class="row" style="justify-content: space-between;">
+      <span class="muted" id="who"></span>
+      <button class="ghost" id="logoutBtn">로그아웃</button>
+    </div>
+
+    <h3>종목 검색</h3>
+    <div class="row">
+      <input id="search" placeholder="삼성전자, AAPL ..." />
+    </div>
+    <div id="results"></div>
+
+    <h3>내 관심종목</h3>
+    <div id="watchlist"></div>
+  </section>
+
+  <div id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

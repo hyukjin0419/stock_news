@@ -1,0 +1,35 @@
+name: 매일 관심종목 브리핑
+
+on:
+  schedule:
+    # 06:00 KST = 21:00 UTC (전날). GitHub Actions cron은 몇 분~십수 분 지연될 수 있음.
+    - cron: "0 21 * * *"
+  workflow_dispatch: {} # 수동 실행 버튼
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline
+        working-directory: pipeline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python main.py

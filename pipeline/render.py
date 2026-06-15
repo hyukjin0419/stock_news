@@ -4,46 +4,42 @@ from datetime import datetime
 from prices import format_amount, format_change
 
 
-def render_email(
-    price_rows: list[dict], digest: dict | None, stock_sections: list[dict]
-) -> str:
+def render_email(price_rows: list[dict], stock_sections: list[dict]) -> str:
     """
     price_rows:     [{name, ticker, market, price: dict|None}, ...]  (전 종목)
-    digest:         {"호재":[...], "악재":[...], "액션":[...]} 또는 None
-    stock_sections: [{name, ticker, market, items: [NewsItem]}, ...] (새 뉴스 있는 종목)
+    stock_sections: [{name, ticker, market, items: [NewsItem],
+                      digest: dict|None}, ...]  (전 종목 — 뉴스 없으면 items 빈 배열)
     """
     price_table = _price_table(price_rows)
-    digest_html = _digest_block(digest)
 
     blocks = []
     for sec in stock_sections:
         tag_color = "#d33" if sec["market"] == "KR" else "#2563eb"
-        articles = "".join(_article_html(i) for i in sec["items"])
-        blocks.append(
-            f"""
-            <div style="margin:28px 0;">
-              <h2 style="font-size:18px;margin:0 0 4px;">
+        header = f"""<h2 style="font-size:18px;margin:0 0 4px;">
                 {sec['name']}
                 <span style="font-size:12px;color:#888;">{sec['ticker']}</span>
                 <span style="font-size:11px;color:#fff;background:{tag_color};
                        border-radius:4px;padding:1px 6px;">{sec['market']}</span>
-              </h2>
-              {articles}
-            </div>"""
-        )
+              </h2>"""
+        if sec["items"]:
+            body = _digest_block(sec.get("digest")) + "".join(
+                _article_html(i) for i in sec["items"]
+            )
+        else:
+            body = (
+                '<p style="color:#999;font-size:13px;margin:6px 0 0;">'
+                "오늘 새 뉴스가 없어요.</p>"
+            )
+        blocks.append(f'<div style="margin:28px 0;">{header}{body}</div>')
 
     today = datetime.now().strftime("%Y-%m-%d")
-    news_html = "".join(blocks) if blocks else (
-        '<p style="color:#888;font-size:14px;margin:24px 0;">오늘 새로운 뉴스는 없어요.</p>'
-    )
     return f"""
     <div style="font-family:-apple-system,system-ui,sans-serif;max-width:640px;
                 margin:0 auto;color:#1a1a1a;">
       <h1 style="font-size:22px;">📈 관심종목 브리핑</h1>
       <p style="color:#888;font-size:13px;">{today}</p>
       {price_table}
-      {digest_html}
-      {news_html}
+      {''.join(blocks)}
       <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
       <p style="color:#aaa;font-size:12px;">
         시세·뉴스 수집·요약 자동화. 투자 판단은 본인의 몫입니다.
@@ -112,8 +108,7 @@ def _digest_block(digest: dict | None) -> str:
     if not cards:
         return ""
     return f"""
-    <div style="background:#f8f9fa;border-radius:10px;padding:14px 16px;margin:8px 0 4px;">
-      <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🧭 오늘의 요약</div>
+    <div style="background:#f8f9fa;border-radius:10px;padding:12px 16px;margin:6px 0 10px;">
       {''.join(cards)}
     </div>"""
 

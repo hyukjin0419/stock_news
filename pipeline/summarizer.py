@@ -46,9 +46,9 @@ def analyze(item, stock_name: str) -> bool:
         return True
 
 
-def make_digest(items: list) -> dict | None:
+def make_digest(items: list, stock_name: str) -> dict | None:
     """
-    회원의 오늘자 뉴스 전체를 종합해 호재/악재/액션으로 정리.
+    한 종목의 오늘자 뉴스를 종합해 호재/악재/액션으로 정리.
     {"호재":[...], "악재":[...], "액션":[...]} 또는 실패/빈입력 시 None.
     '액션'은 매매 지시가 아니라 주목·확인할 포인트.
     """
@@ -56,8 +56,8 @@ def make_digest(items: list) -> dict | None:
         return None
     lines = "\n".join(f"- [{i.title}] {i.summary}" for i in items)
     prompt = (
-        "아래는 한 투자자의 관심종목 오늘자 뉴스 요약 모음이야. "
-        "이를 종합해서 다음 셋으로 정리해줘.\n"
+        f"아래는 '{stock_name}' 종목의 오늘자 뉴스 요약 모음이야. "
+        "이 종목 관점에서 종합해 다음 셋으로 정리해줘.\n"
         "- 호재: 주가에 긍정적일 수 있는 사실들 (없으면 빈 배열)\n"
         "- 악재: 부정적일 수 있는 사실들 (없으면 빈 배열)\n"
         "- 액션: 투자자가 앞으로 주목하거나 확인하면 좋을 포인트. "

@@ -43,19 +43,17 @@ def run() -> None:
     sent_cnt = 0
     for m in members:
         sent_urls = get_sent_urls(m["user_id"])
-        price_rows, sections, new_urls, fresh_all = [], [], [], []
+        price_rows, sections, new_urls = [], [], []
         for s in m["stocks"]:
             entry = cache[(s["market"], s["ticker"])]
             price_rows.append({**s, "price": entry.get("price")})
             fresh = [i for i in (entry.get("items") or []) if i.url not in sent_urls]
-            if fresh:
-                sections.append({**s, "items": fresh})
-                new_urls += [i.url for i in fresh]
-                fresh_all += fresh
+            digest = make_digest(fresh, s["name"]) if fresh else None
+            sections.append({**s, "items": fresh, "digest": digest})
+            new_urls += [i.url for i in fresh]
 
-        digest = make_digest(fresh_all)
         subject = f"📈 [{datetime.now():%Y-%m-%d}] 관심종목 브리핑"
-        if send_email(m["email"], subject, render_email(price_rows, digest, sections)):
+        if send_email(m["email"], subject, render_email(price_rows, sections)):
             record_sent(m["user_id"], new_urls)
             sent_cnt += 1
             print(f"  ✅ {m['email']} — 시세 {len(price_rows)} / 새뉴스 {len(new_urls)}")

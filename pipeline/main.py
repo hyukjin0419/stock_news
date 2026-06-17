@@ -42,21 +42,25 @@ def run() -> None:
     # 3) 회원별 조립 + 발송 (시세는 항상, 뉴스는 새 기사 있을 때)
     sent_cnt = 0
     for m in members:
-        sent_urls = get_sent_urls(m["user_id"])
-        price_rows, sections, new_urls = [], [], []
-        for s in m["stocks"]:
-            entry = cache[(s["market"], s["ticker"])]
-            price_rows.append({**s, "price": entry.get("price")})
-            fresh = [i for i in (entry.get("items") or []) if i.url not in sent_urls]
-            digest = make_digest(fresh, s["name"]) if fresh else None
-            sections.append({**s, "items": fresh, "digest": digest})
-            new_urls += [i.url for i in fresh]
+        # 한 회원에서 에러가 나도 뒤 회원 발송이 죽지 않도록 격리
+        try:
+            sent_urls = get_sent_urls(m["user_id"])
+            price_rows, sections, new_urls = [], [], []
+            for s in m["stocks"]:
+                entry = cache[(s["market"], s["ticker"])]
+                price_rows.append({**s, "price": entry.get("price")})
+                fresh = [i for i in (entry.get("items") or []) if i.url not in sent_urls]
+                digest = make_digest(fresh, s["name"]) if fresh else None
+                sections.append({**s, "items": fresh, "digest": digest})
+                new_urls += [i.url for i in fresh]
 
-        subject = f"📈 [{datetime.now():%Y-%m-%d}] 관심종목 브리핑"
-        if send_email(m["email"], subject, render_email(price_rows, sections)):
-            record_sent(m["user_id"], new_urls)
-            sent_cnt += 1
-            print(f"  ✅ {m['email']} — 시세 {len(price_rows)} / 새뉴스 {len(new_urls)}")
+            subject = f"📈 [{datetime.now():%Y-%m-%d}] 관심종목 브리핑"
+            if send_email(m["email"], subject, render_email(price_rows, sections)):
+                record_sent(m["user_id"], new_urls)
+                sent_cnt += 1
+                print(f"  ✅ {m['email']} — 시세 {len(price_rows)} / 새뉴스 {len(new_urls)}")
+        except Exception as e:
+            print(f"  ❌ {m['email']} 처리 실패, 건너뜀: {e}")
 
     print(f"완료 — {sent_cnt}명 발송")
 

@@ -56,5 +56,7 @@ def get_sent_urls(user_id: str) -> set[str]:
 def record_sent(user_id: str, urls: list[str]) -> None:
     if not urls:
         return
-    payload = [{"user_id": user_id, "url": u} for u in urls]
+    # 같은 URL이 여러 종목에 잡혀 중복될 수 있음 → 단일 upsert 문 내 중복 제거
+    # (Postgres ON CONFLICT는 한 문에서 같은 행을 두 번 못 갱침, code 21000)
+    payload = [{"user_id": user_id, "url": u} for u in dict.fromkeys(urls)]
     _sb.table("sent_news").upsert(payload, on_conflict="user_id,url").execute()

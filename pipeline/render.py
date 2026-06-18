@@ -16,6 +16,13 @@ def _safe_url(url: str) -> str:
     return _esc(url) if url.startswith(("http://", "https://")) else ""
 
 
+# 다이제스트와 기사 목록 사이에 들어가는 작은 라벨
+_RELATED_LABEL = (
+    '<div style="font-size:11px;color:#aaa;font-weight:700;'
+    'margin:10px 0 2px;">#관련기사</div>'
+)
+
+
 def render_email(price_rows: list[dict], stock_sections: list[dict]) -> str:
     """
     price_rows:     [{name, ticker, market, price: dict|None}, ...]  (전 종목)
@@ -34,8 +41,10 @@ def render_email(price_rows: list[dict], stock_sections: list[dict]) -> str:
                        border-radius:4px;padding:1px 6px;">{_esc(sec['market'])}</span>
               </h2>"""
         if sec["items"]:
-            body = _digest_block(sec.get("digest")) + "".join(
-                _article_html(i) for i in sec["items"]
+            body = (
+                _digest_block(sec.get("digest"))
+                + _RELATED_LABEL
+                + "".join(_article_html(i) for i in sec["items"])
             )
         else:
             body = (

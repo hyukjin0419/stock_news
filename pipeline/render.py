@@ -1,7 +1,19 @@
 """회원별 시세+뉴스 → HTML 이메일 본문."""
 from datetime import datetime
+from html import escape
 
 from prices import format_amount, format_change
+
+
+def _esc(s) -> str:
+    """HTML 본문/속성 삽입용 이스케이프 (뉴스 제목·요약·LLM 출력 등 외부 텍스트)."""
+    return escape(str(s or ""), quote=True)
+
+
+def _safe_url(url: str) -> str:
+    """http(s) 링크만 허용하고 이스케이프. 그 외 스킴(javascript: 등)은 빈 값."""
+    url = str(url or "")
+    return _esc(url) if url.startswith(("http://", "https://")) else ""
 
 
 def render_email(price_rows: list[dict], stock_sections: list[dict]) -> str:
@@ -16,10 +28,10 @@ def render_email(price_rows: list[dict], stock_sections: list[dict]) -> str:
     for sec in stock_sections:
         tag_color = "#d33" if sec["market"] == "KR" else "#2563eb"
         header = f"""<h2 style="font-size:18px;margin:0 0 4px;">
-                {sec['name']}
-                <span style="font-size:12px;color:#888;">{sec['ticker']}</span>
+                {_esc(sec['name'])}
+                <span style="font-size:12px;color:#888;">{_esc(sec['ticker'])}</span>
                 <span style="font-size:11px;color:#fff;background:{tag_color};
-                       border-radius:4px;padding:1px 6px;">{sec['market']}</span>
+                       border-radius:4px;padding:1px 6px;">{_esc(sec['market'])}</span>
               </h2>"""
         if sec["items"]:
             body = _digest_block(sec.get("digest")) + "".join(
@@ -66,8 +78,8 @@ def _price_table(rows: list[dict]) -> str:
         color = "#16a34a" if chg > 0 else ("#dc2626" if chg < 0 else "#888")
         trs.append(
             f"""<tr>
-              <td style="padding:8px 0;font-size:14px;">{r['name']}
-                <span style="color:#aaa;font-size:12px;">{r['ticker']}</span></td>
+              <td style="padding:8px 0;font-size:14px;">{_esc(r['name'])}
+                <span style="color:#aaa;font-size:12px;">{_esc(r['ticker'])}</span></td>
               <td style="padding:8px 0;font-size:14px;text-align:right;font-weight:600;">
                 {format_amount(p)}</td>
               <td style="padding:8px 0;font-size:14px;text-align:right;
@@ -94,7 +106,7 @@ def _digest_block(digest: dict | None) -> str:
         if not items:
             continue
         lis = "".join(
-            f'<li style="margin:3px 0;">{x}</li>' for x in items
+            f'<li style="margin:3px 0;">{_esc(x)}</li>' for x in items
         )
         label = "주목 포인트" if key == "액션" else key
         cards.append(
@@ -117,9 +129,9 @@ def _article_html(item) -> str:
     date = item.published_at.strftime("%m/%d %H:%M")
     return f"""
     <div style="padding:12px 0;border-bottom:1px solid #eee;">
-      <a href="{item.url}" style="font-size:15px;font-weight:600;
-         color:#111;text-decoration:none;">{item.title}</a>
+      <a href="{_safe_url(item.url)}" style="font-size:15px;font-weight:600;
+         color:#111;text-decoration:none;">{_esc(item.title)}</a>
       <div style="font-size:12px;color:#999;margin:2px 0 6px;">
-        {item.source} · {date}</div>
-      <div style="font-size:14px;color:#333;line-height:1.5;">{item.summary}</div>
+        {_esc(item.source)} · {date}</div>
+      <div style="font-size:14px;color:#333;line-height:1.5;">{_esc(item.summary)}</div>
     </div>"""

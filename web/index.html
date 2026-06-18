@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>주식 뉴스 관심종목</title>
+  <title>FIRSTWAVE</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, system-ui, sans-serif; max-width: 640px;
@@ -31,7 +31,8 @@
   </style>
 </head>
 <body>
-  <h1>📈 주식 뉴스 관심종목</h1>
+  <h1>📈 FIRSTWAVE</h1>
+  <p class="muted">관심종목 뉴스 브리핑</p>
 
   <!-- 로그인 -->
   <section id="auth">
@@ -60,8 +61,21 @@
     </div>
     <div id="results"></div>
 
-    <h3>내 관심종목</h3>
+    <h3>내 관심종목 <span class="muted" id="count"></span></h3>
     <div id="watchlist"></div>
+
+    <!-- 무료 한도 도달 시 노출 -->
+    <div id="upgrade" class="hidden" style="margin-top:16px;padding:14px 16px;
+         background:#f8f9fa;border-radius:10px;">
+      <p class="muted" style="margin:0 0 8px;">
+        무료 플랜은 종목 3개까지예요. 무제한 구독(월 4,900원)은 아래 계좌로 송금해 주세요.</p>
+      <div class="row" style="gap:8px;align-items:center;">
+        <span id="bankInfo" style="font-weight:600;font-size:14px;"></span>
+        <button id="copyBtn" class="ghost">복사</button>
+      </div>
+      <p class="muted" style="margin:8px 0 0;font-size:12px;">
+        송금 메시지에 <b>가입 이메일</b>을 꼭 적어주세요. 확인 후 무제한으로 열어드려요.</p>
+    </div>
   </section>
 
   <div id="toast"></div>

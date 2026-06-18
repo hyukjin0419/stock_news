@@ -16,7 +16,7 @@ def send_email(to_email: str, subject: str, html: str) -> bool:
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"] = f"주식뉴스 <{GMAIL_USER}>"
+        msg["From"] = f"FIRSTWAVE <{GMAIL_USER}>"
         msg["To"] = to_email
         msg.attach(MIMEText(html, "html", "utf-8"))
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:

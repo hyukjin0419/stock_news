@@ -4,6 +4,34 @@ const sb = supabase.createClient(url, publishableKey);
 const $ = (id) => document.getElementById(id);
 let debounce, toastTimer;
 
+// ---------- 구독/플랜 ----------
+const FREE_LIMIT = 3;
+// 구독 입금 계좌 (계좌이체 방식)
+const BANK_NUMBER = "1000-4489-5167";
+const BANK_INFO = `토스뱅크 ${BANK_NUMBER} (예금주 최혁진)`;
+let myPlan = "free"; // 'free' | 'free_legacy' | 'paid'
+let watchCount = 0;
+
+const isUnlimited = () => myPlan === "free_legacy" || myPlan === "paid";
+
+async function loadPlan() {
+  // RLS상 본인 행만 조회됨. 행이 없으면 무료.
+  const { data } = await sb.from("subscriber").select("plan").maybeSingle();
+  myPlan = data?.plan || "free";
+}
+
+function showUpgrade(show) {
+  $("bankInfo").textContent = BANK_INFO;
+  $("upgrade").classList.toggle("hidden", !show);
+}
+
+$("copyBtn").onclick = () => {
+  navigator.clipboard
+    .writeText(BANK_NUMBER)
+    .then(() => toast("계좌번호 복사됨"))
+    .catch(() => toast("복사 실패 — 직접 입력해주세요", true));
+};
+
 function toast(msg, isError = false) {
   const t = $("toast");
   t.textContent = msg;
@@ -76,7 +104,7 @@ function render(session) {
   $("app").classList.toggle("hidden", !logged);
   if (logged) {
     $("who").textContent = session.user.email;
-    loadWatchlist();
+    loadPlan().then(loadWatchlist);
   }
 }
 
@@ -111,6 +139,12 @@ async function searchStocks() {
 
 // ---------- watchlist 추가/삭제 ----------
 async function addStock(stockId, name) {
+  // 무료 회원이 한도를 채웠으면 추가 막고 구독 안내
+  if (!isUnlimited() && watchCount >= FREE_LIMIT) {
+    toast(`무료는 종목 ${FREE_LIMIT}개까지예요`, true);
+    showUpgrade(true);
+    return;
+  }
   const { data: u } = await sb.auth.getUser();
   const { error } = await sb
     .from("watchlist")
@@ -136,6 +170,15 @@ async function loadWatchlist() {
     .select("stock_id, stock(ticker, market, name)")
     .order("created_at", { ascending: false });
   if (error) return console.error(error);
+
+  watchCount = data.length;
+  // 종목 수 표시 (무료는 'n/3', 무제한은 'n')
+  $("count").textContent = isUnlimited()
+    ? `(${watchCount})`
+    : `(${watchCount}/${FREE_LIMIT})`;
+  // 무료 + 한도 도달 시 구독 안내 노출
+  showUpgrade(!isUnlimited() && watchCount >= FREE_LIMIT);
+
   if (!data.length)
     return ($("watchlist").innerHTML =
       '<p class="muted">아직 없어요. 위에서 검색해 추가하세요.</p>');

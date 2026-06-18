@@ -42,14 +42,17 @@ create table if not exists sent_news (
 -- ============================================================
 -- 4. subscriber — 회원 구독 등급
 --    plan: 'free'(기본·종목 3개 제한) / 'free_legacy'(기존회원 평생무료·무제한)
---          / 'paid'(유료·무제한)
+--          / 'paid'(유료·paid_until까지 무제한)
+--    paid_until: 'paid' 유효기간(날짜). 지나면 자동으로 무료 취급(자동 만료).
+--                free_legacy는 NULL(무기한). 입금 확인 시 +30일로 설정/연장.
 --    행이 없는 회원은 무료('free')로 간주한다.
---    무제한 = plan in ('free_legacy', 'paid').
+--    무제한 = free_legacy, 또는 (paid 이고 paid_until >= 오늘).
 -- ============================================================
 create table if not exists subscriber (
     user_id    uuid primary key references auth.users (id) on delete cascade,
     plan       text not null default 'free'
                  check (plan in ('free', 'free_legacy', 'paid')),
+    paid_until date,
     updated_at timestamptz not null default now()
 );
 

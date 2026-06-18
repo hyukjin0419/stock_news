@@ -3,3 +3,6 @@ venv/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Claude Code 대화 export 본 (레포에 포함 안 함)
+firstwave-*.txt

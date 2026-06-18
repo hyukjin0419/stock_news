@@ -40,6 +40,20 @@ create table if not exists sent_news (
 );
 
 -- ============================================================
+-- 4. subscriber — 회원 구독 등급
+--    plan: 'free'(기본·종목 3개 제한) / 'free_legacy'(기존회원 평생무료·무제한)
+--          / 'paid'(유료·무제한)
+--    행이 없는 회원은 무료('free')로 간주한다.
+--    무제한 = plan in ('free_legacy', 'paid').
+-- ============================================================
+create table if not exists subscriber (
+    user_id    uuid primary key references auth.users (id) on delete cascade,
+    plan       text not null default 'free'
+                 check (plan in ('free', 'free_legacy', 'paid')),
+    updated_at timestamptz not null default now()
+);
+
+-- ============================================================
 -- RLS (행 수준 보안) — 켜고 정책을 박는다
 -- ============================================================
 
@@ -62,6 +76,13 @@ create policy "own sent_news"
     on sent_news for all
     using (user_id = auth.uid())
     with check (user_id = auth.uid());
+
+-- subscriber: 본인 등급만 읽기(프론트가 제한 판단). 쓰기는 막음
+--             (등급 변경은 service_role 또는 Supabase 대시보드에서 수동).
+alter table subscriber enable row level security;
+create policy "own subscriber read"
+    on subscriber for select
+    using (user_id = auth.uid());
 
 -- 참고: Python 파이프라인은 service_role 키로 접속하므로 RLS를 우회하여
 --       모든 회원의 watchlist를 읽고 sent_news를 기록합니다.

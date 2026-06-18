@@ -1,0 +1,68 @@
+============================================================
+FIRSTWAVE - Supabase 적용 SQL
+(Supabase 대시보드 → SQL Editor 에 붙여넣고 실행)
+============================================================
+
+------------------------------------------------------------
+[1] subscriber 테이블 생성  ← 제일 먼저 1회 실행
+------------------------------------------------------------
+-- plan: 'free'(기본·종목 3개 제한) / 'free_legacy'(기존회원 평생무료·무제한)
+--       / 'paid'(유료·무제한). 행이 없는 회원은 'free'로 간주.
+
+create table if not exists subscriber (
+    user_id    uuid primary key references auth.users (id) on delete cascade,
+    plan       text not null default 'free'
+                 check (plan in ('free', 'free_legacy', 'paid')),
+    updated_at timestamptz not null default now()
+);
+
+alter table subscriber enable row level security;
+
+create policy "own subscriber read"
+    on subscriber for select
+    using (user_id = auth.uid());
+
+
+------------------------------------------------------------
+[2] 기존 회원 전원 평생무료(free_legacy)로  ← [1] 다음 1회 실행
+------------------------------------------------------------
+-- "지금 가입돼 있는 사람 전부"를 무제한 무료로 처리.
+-- 이후 신규 가입자는 자동으로 'free'(종목 3개 제한).
+
+insert into subscriber (user_id, plan)
+select id, 'free_legacy' from auth.users
+on conflict (user_id) do update
+    set plan = 'free_legacy', updated_at = now();
+
+
+============================================================
+운영용 SQL (평소 입금 확인 후 사용 — 저장해두기)
+============================================================
+
+------------------------------------------------------------
+[A] 유료 결제 확인 → 해당 회원 'paid'로 승급
+------------------------------------------------------------
+-- '결제자이메일' 부분만 실제 가입 이메일로 바꿔 실행.
+
+insert into subscriber (user_id, plan)
+select id, 'paid' from auth.users
+where email = '결제자이메일'
+on conflict (user_id) do update
+    set plan = 'paid', updated_at = now();
+
+
+------------------------------------------------------------
+[B] 재결제 안 됨 → 'free'로 강등 (종목 3개 제한 복귀)
+------------------------------------------------------------
+update subscriber
+set plan = 'free', updated_at = now()
+where user_id = (select id from auth.users where email = '이메일');
+
+
+------------------------------------------------------------
+[C] 현재 등급 현황 조회 (누가 무슨 플랜인지 확인)
+------------------------------------------------------------
+select u.email, coalesce(s.plan, 'free') as plan, s.updated_at
+from auth.users u
+left join subscriber s on s.user_id = u.id
+order by s.updated_at desc nulls last;

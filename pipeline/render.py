@@ -36,8 +36,8 @@ def render_email(price_rows: list[dict], stock_sections: list[dict]) -> str:
     return f"""
     <div style="font-family:-apple-system,system-ui,sans-serif;max-width:640px;
                 margin:0 auto;color:#1a1a1a;">
-      <h1 style="font-size:22px;">📈 관심종목 브리핑</h1>
-      <p style="color:#888;font-size:13px;">{today}</p>
+      <h1 style="font-size:22px;">📈 FIRSTWAVE</h1>
+      <p style="color:#888;font-size:13px;">관심종목 브리핑 · {today}</p>
       {price_table}
       {''.join(blocks)}
       <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />

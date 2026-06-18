@@ -54,7 +54,7 @@ def run() -> None:
                 sections.append({**s, "items": fresh, "digest": digest})
                 new_urls += [i.url for i in fresh]
 
-            subject = f"📈 [{datetime.now():%Y-%m-%d}] 관심종목 브리핑"
+            subject = f"📈 [{datetime.now():%Y-%m-%d}] FIRSTWAVE 관심종목 브리핑"
             if send_email(m["email"], subject, render_email(price_rows, sections)):
                 record_sent(m["user_id"], new_urls)
                 sent_cnt += 1

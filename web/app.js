@@ -10,14 +10,19 @@ const FREE_LIMIT = 3;
 const BANK_NUMBER = "1000-4489-5167";
 const BANK_INFO = `토스뱅크 ${BANK_NUMBER} (예금주 최혁진)`;
 let myPlan = "free"; // 'free' | 'free_legacy' | 'paid'
+let myPaidUntil = null; // 'YYYY-MM-DD' | null — paid 유효기간(지나면 만료)
 let watchCount = 0;
 
-const isUnlimited = () => myPlan === "free_legacy" || myPlan === "paid";
+const isUnlimited = () =>
+  myPlan === "free_legacy" ||
+  (myPlan === "paid" &&
+    (!myPaidUntil || myPaidUntil >= new Date().toISOString().slice(0, 10)));
 
 async function loadPlan() {
   // RLS상 본인 행만 조회됨. 행이 없으면 무료.
-  const { data } = await sb.from("subscriber").select("plan").maybeSingle();
+  const { data } = await sb.from("subscriber").select("plan, paid_until").maybeSingle();
   myPlan = data?.plan || "free";
+  myPaidUntil = data?.paid_until || null;
 }
 
 function showUpgrade(show) {

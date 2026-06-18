@@ -7,12 +7,14 @@ FIRSTWAVE - Supabase 적용 SQL
 [1] subscriber 테이블 생성  ← 제일 먼저 1회 실행
 ------------------------------------------------------------
 -- plan: 'free'(기본·종목 3개 제한) / 'free_legacy'(기존회원 평생무료·무제한)
---       / 'paid'(유료·무제한). 행이 없는 회원은 'free'로 간주.
+--       / 'paid'(유료). 행이 없는 회원은 'free'로 간주.
+-- paid_until: paid 유효기간(날짜). 지나면 자동으로 무료 취급(자동 만료).
 
 create table if not exists subscriber (
     user_id    uuid primary key references auth.users (id) on delete cascade,
     plan       text not null default 'free'
                  check (plan in ('free', 'free_legacy', 'paid')),
+    paid_until date,
     updated_at timestamptz not null default now()
 );
 
@@ -21,6 +23,11 @@ alter table subscriber enable row level security;
 create policy "own subscriber read"
     on subscriber for select
     using (user_id = auth.uid());
+
+------------------------------------------------------------
+[1-b] (이미 [1] 테이블을 만들어 둔 경우) paid_until 컬럼 추가  ← 1회
+------------------------------------------------------------
+alter table subscriber add column if not exists paid_until date;
 
 
 ------------------------------------------------------------
@@ -40,29 +47,41 @@ on conflict (user_id) do update
 ============================================================
 
 ------------------------------------------------------------
-[A] 유료 결제 확인 → 해당 회원 'paid'로 승급
+[A] 유료 결제 확인 → 'paid'로 승급 + 30일 연장
 ------------------------------------------------------------
--- '결제자이메일' 부분만 실제 가입 이메일로 바꿔 실행.
+-- '결제자이메일'만 실제 가입 이메일로 바꿔 실행.
+-- 신규: 오늘+30일로 설정. 재결제: 남은 기간에 30일 누적(만료됐으면 오늘부터 30일).
+-- 30일 뒤 paid_until이 지나면 파이프라인/웹이 자동으로 무료 취급 → 수동 강등 불필요.
 
-insert into subscriber (user_id, plan)
-select id, 'paid' from auth.users
+insert into subscriber (user_id, plan, paid_until)
+select id, 'paid', current_date + 30 from auth.users
 where email = '결제자이메일'
 on conflict (user_id) do update
-    set plan = 'paid', updated_at = now();
+    set plan = 'paid',
+        paid_until = greatest(coalesce(subscriber.paid_until, current_date), current_date) + 30,
+        updated_at = now();
 
 
 ------------------------------------------------------------
-[B] 재결제 안 됨 → 'free'로 강등 (종목 3개 제한 복귀)
+[B] 즉시 'free'로 강등 (환불 등 — 보통은 [A] 안 하면 자동 만료라 불필요)
 ------------------------------------------------------------
 update subscriber
-set plan = 'free', updated_at = now()
+set plan = 'free', paid_until = null, updated_at = now()
 where user_id = (select id from auth.users where email = '이메일');
 
 
 ------------------------------------------------------------
-[C] 현재 등급 현황 조회 (누가 무슨 플랜인지 확인)
+[C] 현재 등급 현황 조회 (플랜 + 만료일 + 상태)
 ------------------------------------------------------------
-select u.email, coalesce(s.plan, 'free') as plan, s.updated_at
+select u.email,
+       coalesce(s.plan, 'free') as plan,
+       s.paid_until,
+       case
+         when s.plan = 'free_legacy' then '무기한'
+         when s.plan = 'paid' and s.paid_until >= current_date then '유효'
+         when s.plan = 'paid' then '만료됨'
+         else '-'
+       end as 상태
 from auth.users u
 left join subscriber s on s.user_id = u.id
-order by s.updated_at desc nulls last;
+order by s.paid_until desc nulls last;
